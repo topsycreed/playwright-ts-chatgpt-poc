@@ -49,8 +49,8 @@ export class HomePage {
     }
 
     async addItemToBag() {
-        await this.addToBagButton.click();
-        await this.viewBagButton.click();
+        await this.addToBagButton.click({ timeout: 5000 });
+        await this.viewBagButton.click({ timeout: 5000 });
 
         await expect(this.shoppingBagHeader).toBeVisible();
     }
