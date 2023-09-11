@@ -1,5 +1,13 @@
 import { Locator, Page } from '@playwright/test';
 
+const fs = require('fs');
+const path = require('path');
+const messagesFilePath = 'chatGPTLogs.txt';
+const testsFilePath = './tests';
+const testsFileName = 'chatGPTGeneratedTest.spec.ts';
+const testFullPath = path.join(testsFilePath, testsFileName);
+const answerWaitTime = 60_000;
+
 export class GptPage {
   private page: Page;
   private signInButton: Locator;
@@ -53,7 +61,49 @@ export class GptPage {
     await this.messageInput.waitFor({state: "visible"});
     await this.messageInput.type(message);
     await this.messageSendButton.click();
-    await this.page.waitForTimeout(30000);
+    await this.page.waitForTimeout(answerWaitTime);
+    let code = await this.logMessage(message);
+    return code;
+  }
+
+  async createTest(code: string) {
+    fs.writeFileSync(testFullPath, code);
+  }
+
+  async logMessage(message: string) {
+    const capturedMessages: string[] = [];
+    const xpathLocator = '//div[contains(@data-testid, "conversation-turn")]';
+    const codeXpathLocator = '//div[contains(@data-testid, "conversation-turn")]//button[text() = "Copy code"]/../..//code';
+    const codeXpathLocator2 = '//button[text() = "Copy code"]/../..//code';
+    const elements = await this.page.$$(xpathLocator);
+    let question = false;
+    let answer;
+    let codeText;
+    for (const elementHandle of elements) {
+      const text = await elementHandle.innerText();
+      if (text === message) {
+        question = true;
+        capturedMessages.push("Question: " + message + '\n');
+        // console.log("Question: " + message);
+      } else if (question) {
+        const code = await elementHandle.$(codeXpathLocator2);
+        if (code) {
+          codeText = code.innerText();
+        }
+        question = false;
+        answer = text;
+        capturedMessages.push("Answer: " + answer + '\n');
+        // console.log("Answer: " + text);
+      }
+    }
+    if (!answer) {
+      fs.appendFileSync(messagesFilePath, "Cannot get answer for the question: " + message + '\n');
+      // console.log("Cannot get answer for the question: " + message);
+      throw new Error('Cannot get answer for the question: ' + question);
+    } else {
+      fs.appendFileSync(messagesFilePath, capturedMessages.join(''));
+      return codeText;
+    }
   }
 
   async logMessages() {
