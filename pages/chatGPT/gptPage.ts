@@ -76,34 +76,27 @@ export class GptPage {
     const codeXpathLocator = '//div[contains(@data-testid, "conversation-turn")]//button[text() = "Copy code"]/../..//code';
     const codeXpathLocator2 = '//button[text() = "Copy code"]/../..//code';
     const elements = await this.page.$$(xpathLocator);
-    let question = false;
     let answer;
     let codeText;
-    for (const elementHandle of elements) {
+    for (let i = 0; i < elements.length; i++) {
+      let elementHandle = elements[i];
       const text = await elementHandle.innerText();
-      if (text === message) {
-        question = true;
+      if (i % 2 === 0) {
         capturedMessages.push("Question: " + message + '\n');
         // console.log("Question: " + message);
-      } else if (question) {
+      }
+      else {
         const code = await elementHandle.$(codeXpathLocator2);
         if (code) {
           codeText = code.innerText();
         }
-        question = false;
         answer = text;
         capturedMessages.push("Answer: " + answer + '\n');
         // console.log("Answer: " + text);
       }
     }
-    if (!answer) {
-      fs.appendFileSync(messagesFilePath, "Cannot get answer for the question: " + message + '\n');
-      // console.log("Cannot get answer for the question: " + message);
-      throw new Error('Cannot get answer for the question: ' + question);
-    } else {
-      fs.appendFileSync(messagesFilePath, capturedMessages.join(''));
-      return codeText;
-    }
+    fs.appendFileSync(messagesFilePath, capturedMessages.join(''));
+    return codeText;
   }
 
   async logMessages() {

@@ -21,7 +21,7 @@ console.log = (...args: any[]) => {
 
 test.afterAll(async () => {
     fs.writeFileSync(messagesFilePath, capturedMessages.join('\n'));
-  });
+});
 
 test('API Test', async ({ request }) => {
   // Send a GET request to the API endpoint
