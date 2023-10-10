@@ -1,12 +1,30 @@
 import { Locator, Page } from '@playwright/test';
+import { execSync } from 'child_process';
 
 const fs = require('fs');
 const path = require('path');
 const messagesFilePath = 'chatGPTLogs.txt';
 const testsFilePath = './tests';
 const testsFileName = 'chatGPTGeneratedTest.spec.ts';
+const fixedTestFileName = 'apiChatFixedTest.spec.ts';
 const testFullPath = path.join(testsFilePath, testsFileName);
-const answerWaitTime = 60_000;
+const answerWaitTime = 90_000;
+
+const email: string | undefined = process.env.CHATGPT_EMAIL;
+const password: string | undefined = process.env.CHATGPT_PASSWORD;
+
+const command = `npx playwright test ${testsFileName}`;
+
+const capturedMessages: string[] = [];
+
+const logFilePath = 'execution_log_messages.txt';
+
+const originalConsoleLog = console.log;
+console.log = (...args: any[]) => {
+  const message = args.map(arg => String(arg)).join(' ');
+  capturedMessages.push(message);
+  originalConsoleLog(...args);
+};
 
 export class GptPage {
   private page: Page;
@@ -70,6 +88,104 @@ export class GptPage {
     fs.writeFileSync(testFullPath, code);
   }
 
+  async createTestWithPath(path: string, code: string) {
+    const fixedTestFullPath = require('path').join(testsFilePath, path);
+    fs.writeFileSync(fixedTestFullPath, code);
+  }
+
+  async executeTest() {
+    try {
+      var result = execSync(command).toString();
+      console.log("Test passed!" + result);
+    } catch (error) {
+      console.log("Test failed!" + error.stdout.toString());
+    }
+    //logging test results to file
+    fs.writeFileSync(logFilePath, capturedMessages.join('\n'));
+  }
+
+  async executeTestByName(testName: string) {
+    try {
+      var result = execSync("npx playwright test " + testName).toString();
+      console.log("Test passed!" + result);
+    } catch (error) {
+      console.log("Test failed!" + error.stdout.toString());
+    }
+    //logging test results to file
+    fs.writeFileSync(logFilePath, capturedMessages.join('\n'));
+  }
+
+  async fixTestIfFailed() {
+    let maxAttempts = 5;
+    let passed = false;
+    for (let i = 0; i < maxAttempts; i++) {
+      await this.executeTest();
+      let status = await this.getStatus();
+      console.log("Value of status: " + status);
+      if ('Test passed!' == status) {
+        passed = true;
+        break;
+      }
+    }
+    console.log("Value of passed: " + passed);
+    if (passed) {
+      console.log("Test passed at least once in " + maxAttempts + " attempts. So no auto-fix required. Please check your env or scenario.");
+    } else {
+      console.log('Need to ask chatGPT to fix the test');
+      let executionFullLog = await this.getExecutionLog();
+      let chatGPTErrorPromt = "I executed test that you generated for me. It failed, please write suggestions to fix it. This is the results of my executions: " + executionFullLog;
+      let latestCode = await this.getLatestCode();
+      await this.sendMessage(chatGPTErrorPromt);
+      const newTestCode = await this.sendMessage("Thanks! Now fix the latest test code with those suggestions and return fixed version! This is the latest code version: " + latestCode);
+      await this.createTestWithPath(fixedTestFileName, newTestCode);
+      await this.executeTestByName("apiChatFixedTest.spec.ts");
+      let status = await this.getStatus();
+      if ('Test passed!' == status) {
+        console.log('Fix helped!');
+      } else {
+        console.log('Even after the fix there are still error!');
+      }
+    }
+  }
+
+  
+
+  async getLatestCode() {
+    let latestCode;
+    try {
+      const еestFullPath = require('path').join(testsFilePath, testsFileName);
+      const fileContent = fs.readFileSync(еestFullPath, 'utf-8');
+      latestCode = fileContent.split('\n').join('');
+    } catch (err) {
+      throw new Error('Error reading the file with test code:' + err);
+    };
+    return latestCode;
+  }
+
+  async getStatus() {
+    let status;
+    try {
+      const fileContent = fs.readFileSync(logFilePath, 'utf-8');
+      const lines = fileContent.split('\n');
+      status = lines[0];
+    } catch (err) {
+      throw new Error('Error reading the file to get status:' + err);
+    };
+    return status;
+  }
+
+  async getExecutionLog() {
+    let log;
+    try {
+      const fileContent = fs.readFileSync(logFilePath, 'utf-8');
+      const lines = fileContent.split('\n');
+      log = fileContent.split('\n').join('');
+    } catch (err) {
+      throw new Error('Error reading the file to get execution logs:' + err);
+    };
+    return log;
+  }
+
   async logMessage(message: string) {
     const capturedMessages: string[] = [];
     const xpathLocator = '//div[contains(@data-testid, "conversation-turn")]';
@@ -114,5 +230,12 @@ export class GptPage {
         question = true;
       }
     }
+  }
+
+  async setup() {
+    await this.navigate();
+    await this.clickSignIn();
+    await this.login(email, password);
+    await this.closeTips();
   }
 }
