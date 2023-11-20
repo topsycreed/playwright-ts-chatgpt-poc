@@ -9,3 +9,4 @@
 6. > npx playwright test - to run all scenarios
 7. > npx playwright test name.spec.ts - to run specific scenario
 8. > npx playwright show-report - to run test report
+9. > npx playwright test -g "@debug" - to run scenarios by tags
