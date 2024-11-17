@@ -51,12 +51,8 @@ export async function sendSimpleMessage(message: string) {
         failOnStatusCode: true
     });
 
-    // console.log("sendSimpleMessage status code: " + response.status() + " " + response.statusText());
     const body = await response.json();
-    // console.log(body);
     const answer = body.choices[0].message.content;
-    // console.log("Answer: ");
-    // console.log(answer);
     await logConversation("user", message);
     await logConversation("assistant", answer);
     return answer;
@@ -89,12 +85,8 @@ export async function sendSystemMessage(message: string) {
         failOnStatusCode: true
     });
 
-    // console.log("sendSimpleMessage status code: " + response.status() + " " + response.statusText());
     const body = await response.json();
-    // console.log(body);
     const answer = body.choices[0].message.content;
-    // console.log("Answer: ");
-    // console.log(answer);
     await logConversation("system", systemMessage);
     await logConversation("user", message);
     await logConversation("assistant", answer);
@@ -109,8 +101,6 @@ export async function sendConversationMessage(messages: { role: string; content:
         "messages": messages,
         "temperature": 0.7
     }
-    // console.log("requestBody: ");
-    // console.log(requestBody);
     const contextRequest = await request.newContext();
     const response = await contextRequest.post(endpoint, {
         data: requestBody,
@@ -121,12 +111,8 @@ export async function sendConversationMessage(messages: { role: string; content:
         failOnStatusCode: true
     });
 
-    // console.log("sendSimpleMessage status code: " + response.status() + " " + response.statusText());
     const body = await response.json();
-    // console.log(body);
     const answer = body.choices[0].message.content;
-    // console.log("Answer: ");
-    // console.log(answer);
     messages.push({ role: 'assistant', content: answer });
     await logConversation("assistant", answer);
     return answer;
