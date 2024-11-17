@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { sendSimpleMessage, sendSystemMessage, sendConversationMessage, executeTest, executeTestWithSelfHeal, createTest } from '../steps/gptSteps.ts'
+import { sendSimpleMessage, sendSystemMessage, sendConversationMessage, executeTest, executeTestSeveralTimes, executeTestWithSelfHeal, createTest } from '../steps/gptSteps.ts'
 
 const fs = require('fs');
 const messagesFilePath = 'chatGPTLogs.txt';
@@ -18,7 +18,7 @@ let conversationHistory = [
 
 test('Generate test from postman', async ({ page }) => {
   test.setTimeout(100000);
-  const code = "import { test, expect } from '@playwright/test';\nimport axios from 'axios';\n\nconst baseUrl = 'https://superhero.qa-test.csssr.com';\n\ntest('GET /superheroes/1 should return correct response', async () => {\n  const response = await axios.get(`${baseUrl}/superheroes/1`);\n\n  expect(response.status).toBe(200);\n  expect(response.data).toEqual({\n    id: 1,\n    fullName: 'Dr Pepper New',\n    birthDate: '2020-02-22',\n    city: 'Moscow',\n    mainSkill: 'Soda',\n    gender: 'M',\n    phone: null\n  });\n});"
+  const code = "import { test, expect } from '@playwright/test';\nimport axios from 'axios';\n\nconst baseUrl = 'https://superhero.qa-test.csssr.com';\n\ntest('GET /superheroes/1 should return correct response', async () => {\n  const response = await axios.get(`${baseUrl}/superheroes/1`);\n\n  expect(response.status).toBe(200);\n  expect(response.data).toEqual({\n    id: 1,\n    fullName: 'Doctor Strange',\n    birthDate: '2019-02-21',\n    city: 'New York',\n    mainSkill: 'Magic',\n    gender: 'F',\n    phone: null\n  });\n});"
   await createTest(code);
 });
 
@@ -29,22 +29,35 @@ test('Get simple API answer', async ({ page }) => {
 
 test('Get system API answer and save to file', async ({ page }) => {
   test.setTimeout(100000);
-  const code = await sendSystemMessage("Generate simple GET API test for endpoint '/superheroes/1' using import test, expect from '@playwright/test' and 'axios' lib. Please do not use any other libraries. Use baseUrl as variable. Check that response matching the JSON structure: {\"id\": 1, \"fullName\": \"Dr Pepper New\", \"birthDate\": \"2020-02-22\", \"city\": \"Moscow\", \"mainSkill\": \"Soda\", \"gender\": \"M\", \"phone\": null }. Check only contract, without exact values of fields");
+  const code = await sendSystemMessage("Generate simple GET API test for endpoint '/superheroes/1' using import test, expect from '@playwright/test' and 'axios' lib. Please do not use any other libraries. Use baseUrl as variable. Check that response matching the JSON structure: {\"id\": 1, \"fullName\": \"Doctor Strange\", \"birthDate\": \"2019-02-21\", \"city\": \"New York\", \"mainSkill\": \"Magic\", \"gender\": \"F\", \"phone\": null }. Check only contract, without exact values of fields");
   await createTest(code);
 });
 
 test('Get conversation and save to file and execute test', async ({ page }) => {
   test.setTimeout(100000);
-  await sendConversationMessage(conversationHistory, "Generate simple GET API test for endpoint '/superheroes/1' using import test, expect from '@playwright/test' and 'axios' lib. Please do not use any other libraries. Use baseUrl as variable. Check that response matching the JSON structure: {\"id\": 1, \"fullName\": \"Dr Pepper New\", \"birthDate\": \"2020-02-22\", \"city\": \"Moscow\", \"mainSkill\": \"Soda\", \"gender\": \"M\", \"phone\": null }. Check only contract, without exact values of fields");
-  const code = await sendConversationMessage(conversationHistory, "Could you also print in logs status code and body of response? Keep in mind that to get status code you need to use method response.status, not response.status()");
+  await sendConversationMessage(conversationHistory, "Generate simple GET API test for endpoint '/superheroes/1' using import test, expect from '@playwright/test' and 'axios' lib. Please do not use any other libraries. Use baseUrl as variable. Check that response matching the JSON structure: {\"id\": 1, \"fullName\": \"Doctor Strange\", \"birthDate\": \"2019-02-21\", \"city\": \"New York\", \"mainSkill\": \"Magic\", \"gender\": \"F\", \"phone\": null }. Check only contract, without exact values of fields");
+  const code = await sendConversationMessage(conversationHistory, "Could you also print in logs status code and body of response? Keep in mind that to get status code you need to use method response.status, not response.status(). RETURN ONLY JAVASCRIPT WITHOUT ANY EXPLANATION TEXT");
   await createTest(code);
   await executeTest();
 });
 
 test('Self healing', async ({ page }) => {
   test.setTimeout(300000);
-  await sendConversationMessage(conversationHistory, "Generate simple GET API test for endpoint '/superheroes/1' using import test, expect from '@playwright/test' and 'axios' lib. Please do not use any other libraries. Use baseUrl as variable. Check that response matching the JSON structure: {\"id\": 1, \"fullName\": \"Dr Pepper New\", \"birthDate\": \"2020-02-22\", \"city\": \"Moscow\", \"mainSkill\": \"Soda\", \"gender\": \"M\", \"phone\": null }. Check only contract, without exact values of fields");
+  await sendConversationMessage(conversationHistory, "Generate simple GET API test for endpoint '/superheroes/1' using import test, expect from '@playwright/test' and 'axios' lib. Please do not use any other libraries. Use baseUrl as variable. Check that response matching the JSON structure: {\"id\": 1, \"fullName\": \"Doctor Strange\", \"birthDate\": \"2019-02-21\", \"city\": \"New York\", \"mainSkill\": \"Magic\", \"gender\": \"F\", \"phone\": null }. Check only contract, without exact values of fields");
   const code = await sendConversationMessage(conversationHistory, "Could you also print in logs status code and body of response? Keep in mind that to get status code you need to use method response.status, not response.status()");
   await createTest(code);
   await executeTestWithSelfHeal(conversationHistory);
+});
+
+test('Self healing pet store @debug', async ({ page }) => {
+  test.setTimeout(300000);
+  await sendConversationMessage(conversationHistory, "Generate simple POST, GET, PUT, DELETE API tests for endpoint '/user and user/{username} respectively by using import test, expect from '@playwright/test' and 'axios' lib. Please do not use any other libraries. Use baseUrl as variable. Use example body and generate more real life values: {\"id\": 0, \"username\": \"string\", \"firstName\": \"string\", \"lastName\": \"string\", \"email\": \"string\", \"password\": \"string\", \"phone\": \"string\", \"userStatus\": 0 }. Tests should be able to run independently (for example to check delete we need to create user firstly in the SAME TEST, NOT OUTSIDE)");
+  const code = await sendConversationMessage(conversationHistory, "Could you also print in logs status code and body of response? Keep in mind that to get status code you need to use method response.status, not response.status()");
+  await createTest(code);
+  await executeTestWithSelfHeal(conversationHistory);
+});
+
+test('Execute test', async ({ page }) => {
+  test.setTimeout(300000);
+  await executeTestSeveralTimes();
 });

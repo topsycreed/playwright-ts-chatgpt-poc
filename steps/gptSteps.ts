@@ -31,7 +31,7 @@ const testFullPath = path.join(testsFilePath, testsFileName);
 
 export async function sendSimpleMessage(message: string) {
     const requestBody = {
-        "model": "gpt-3.5-turbo",
+        "model": "gpt-4o-mini",
         "messages": [
             {
                 "role": "user",
@@ -61,7 +61,7 @@ export async function sendSimpleMessage(message: string) {
 export async function sendSystemMessage(message: string) {
     const systemMessage = "Behave like Automation QA Enginner. Your tech stack: TypeScript, Playwright, axios. Your main goal is to write API tests for baseUrl = process.env.BASE_URL!;. It should be only API calls without any UI steps. If you return code ALWAYS return any additional text as comments!";
     const requestBody = {
-        "model": "gpt-3.5-turbo",
+        "model": "gpt-4o-mini",
         "messages": [
             {
                 "role": "system",
@@ -97,7 +97,7 @@ export async function sendConversationMessage(messages: { role: string; content:
     messages.push({ role: 'user', content: message });
     await logConversation('user', message);
     const requestBody = {
-        "model": "gpt-3.5-turbo",
+        "model": "gpt-4o-mini",
         "messages": messages,
         "temperature": 0.7
     }
@@ -140,6 +140,20 @@ export async function executeTest() {
     fs.writeFileSync(logFilePath, capturedMessages.join('\n'));
 }
 
+export async function executeTestSeveralTimes() {
+  //try to executes scenario several times before self-healing
+  let maxAttempts = 2;
+  let passed = false;
+  for (let i = 0; i < maxAttempts; i++) {
+    await executeTest();
+    let status = await getStatus();
+    if ('Test passed!' == status) {
+      passed = true;
+      break;
+    }
+  }
+}
+
 export async function getStatus() {
     let status;
     try {
@@ -177,12 +191,23 @@ export async function getLatestCode() {
 }
 
 export async function createTest(code: string) {
-    fs.writeFileSync(testFullPath, code);
+    const extractedJSCode = await extractJSCode(code);
+    fs.writeFileSync(testFullPath, extractedJSCode);
 }
 
 export async function createTestWithPath(path: string, code: string) {
     const fixedTestFullPath = require('path').join(testsFilePath, path);
-    fs.writeFileSync(fixedTestFullPath, code);
+    const extractedJSCode = await extractJSCode(code);
+    fs.writeFileSync(fixedTestFullPath, extractedJSCode);
+}
+
+export async function extractJSCode(code: string) {
+  const startIndex = code.indexOf('```javascript\n') !== -1
+        ? code.indexOf('```javascript\n') + '```javascript\n'.length
+        : code.indexOf('```typescript\n') + '```typescript\n'.length;
+    const endIndex = code.lastIndexOf('\n```');
+
+    return code.substring(startIndex, endIndex).trim();
 }
 
 export async function executeTestByName(testName: string) {

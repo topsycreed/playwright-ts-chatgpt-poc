@@ -40,11 +40,11 @@ test('API Test', async ({ request }) => {
   // Check if the response matches the expected JSON structure
   const expectedData = {
     id: 1,
-    fullName: "Dr Pepper New",
-    birthDate: "2020-02-22",
-    city: "Moscow",
-    mainSkill: "Soda",
-    gender: "M",
+    fullName: "Doctor Strange",
+    birthDate: "2019-02-21",
+    city: "New York",
+    mainSkill: "Magic",
+    gender: "F",
     phone: null
   };
   
