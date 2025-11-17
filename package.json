@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "mcp:playwright": "mcp-server-playwright"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.32.3"
+    "@playwright/mcp": "^0.0.46",
+    "@playwright/test": "^1.57.0-alpha-2025-11-07"
   },
   "dependencies": {
     "dotenv": "^16.0.3"
